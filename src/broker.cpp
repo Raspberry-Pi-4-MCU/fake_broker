@@ -35,8 +35,17 @@ void schedule::publish_process(void){
                 for(long unsigned int idx_v = 0; idx_v < it->second.size(); idx_v++){
                     int client_id = it->second[idx_v];
                     // check connected
-                    if(sock_client_m[client_id])
-                        sock_client_m[client_id].write(body);
+                    if(sock_client_m[client_id]){
+                        std::string pub_data("{ \"header\": 1, \"topic_id\": ");
+                        pub_data.append(std::to_string(pub_topic_id));
+                        pub_data.append(", \"body\":");
+                        pub_data.append("\"");
+                        pub_data.append(body);
+                        pub_data.append("\"");
+                        pub_data.append("}");
+                        sock_client_m[client_id].write(pub_data);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    }
                 }
             }
             publish_message_q.pop();
@@ -51,7 +60,8 @@ void schedule::sock_process(void){
         std::map<int, sockpp::tcp_socket>::iterator sock_client_m_end = sock_client_m.end();
         while(sock_client_m_begin != sock_client_m_end){
             ssize_t n;
-            char buf[256];
+            // clear buffer
+            char buf[256] = {0};
             if ((n = sock_client_m_begin->second.read(buf, sizeof(buf))) > 0){
                 buf[n+1] = '\0';
                 nlohmann::basic_json<> recv_json = nlohmann::json::parse(std::string(buf));
